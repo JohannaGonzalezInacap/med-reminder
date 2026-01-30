@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Recordatorio de Medicamentos</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <h1>💊 Mis Medicamentos</h1>
+
+  <form id="medForm">
+    <input type="text" id="nombre" placeholder="Nombre del medicamento" required>
+    <input type="number" id="stock" placeholder="Stock inicial" required>
+    <input type="number" id="dosis" placeholder="Dosis diaria" required>
+    <button type="submit">Agregar</button>
+  </form>
+
+  <ul id="listaMedicamentos"></ul>
+
+  <h2>📅 Calendario de consumo</h2>
+<div id="calendario"></div>
+
+
+  <script src="app.js"></script>
+</body>
+</html>

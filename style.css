@@ -1,0 +1,41 @@
+body {
+  font-family: Arial, sans-serif;
+  padding: 20px;
+  background: #f4f6f8;
+}
+
+h1 {
+  color: #333;
+}
+
+form input, form button {
+  padding: 8px;
+  margin: 5px;
+}
+
+li {
+  background: white;
+  padding: 10px;
+  margin: 8px 0;
+  border-radius: 6px;
+}
+
+#calendario {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 5px;
+  margin-top: 15px;
+}
+
+.dia {
+  padding: 10px;
+  background: #e0e0e0;
+  text-align: center;
+  border-radius: 4px;
+}
+
+.consumido {
+  background: #8bc34a;
+  color: white;
+  font-weight: bold;
+}
