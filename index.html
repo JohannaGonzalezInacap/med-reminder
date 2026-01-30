@@ -1,7 +1,10 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+    <meta name="theme-color" content="#4caf50">
+    <link rel="manifest" href="manifest.json">
   <title>Recordatorio de Medicamentos</title>
   <link rel="stylesheet" href="style.css">
 </head>
@@ -19,9 +22,20 @@
   <ul id="listaMedicamentos"></ul>
 
   <h2>📅 Calendario de consumo</h2>
+  <label>
+  Ver calendario de:
+  <select id="filtroMedicamento"></select>
+    </label>
+
 <div id="calendario"></div>
 
 
   <script src="app.js"></script>
+  <script>
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("./sw.js");
+}
+</script>
+
 </body>
 </html>
