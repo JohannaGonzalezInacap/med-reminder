@@ -238,12 +238,13 @@ form.addEventListener("submit", e => {
   const dosis = Number(document.getElementById("dosis").value);
 
   medicamentos.push({
-  nombre,
-  stock,
-  dosis,
-  umbral: 5,
-  historial: []
-});
+    nombre,
+    stock,
+    dosis,
+    umbral: 5,
+    horarios: [],
+    historial: []
+  });
 
 
   guardar();
@@ -266,9 +267,7 @@ function render() {
     const historialHTML = med.historial.length
       ? `<ul>
           ${med.historial
-            .med.historial
-  .map(h => `<li>📅 ${h.fecha} ⏰ ${h.hora}</li>`)
-
+            .map(h => `<li>📅 ${h.fecha} ⏰ ${h.hora}</li>`)
             .join("")}
         </ul>`
       : "<em>Sin consumo registrado</em>";
