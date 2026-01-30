@@ -14,6 +14,18 @@
 
   <div id="alerta" class="alert-box" aria-live="polite"></div>
 
+  <section class="settings">
+    <h2>⚙️ Alertas</h2>
+    <label>
+      Número WhatsApp (solo dígitos):
+      <input type="text" id="waNumber" inputmode="tel" pattern="[0-9]+" placeholder="56912345678">
+    </label>
+    <label class="inline">
+      <input type="checkbox" id="waAuto"> Enviar alerta de umbral a WhatsApp automáticamente
+    </label>
+    <small>Se abrirá WhatsApp Web/móvil con el mensaje prellenado al llegar al umbral.</small>
+  </section>
+
   <form id="medForm">
     <input type="text" id="nombre" placeholder="Nombre del medicamento" required>
     <input type="number" id="stock" placeholder="Stock inicial" required>

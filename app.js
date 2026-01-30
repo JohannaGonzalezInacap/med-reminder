@@ -1,7 +1,13 @@
 const form = document.getElementById("medForm");
 const lista = document.getElementById("listaMedicamentos");
+const waNumberInput = document.getElementById("waNumber");
+const waAutoInput = document.getElementById("waAuto");
 
 let medicamentos = JSON.parse(localStorage.getItem("medicamentos")) || [];
+let settings = JSON.parse(localStorage.getItem("configApp")) || {
+  whatsNumber: "",
+  autoWhats: false
+};
 
 // 🔒 Normalizar datos antiguos (muy importante)
 medicamentos = medicamentos.map(med => ({
@@ -37,6 +43,10 @@ function guardar() {
   localStorage.setItem("medicamentos", JSON.stringify(medicamentos));
 }
 
+function guardarSettings() {
+  localStorage.setItem("configApp", JSON.stringify(settings));
+}
+
 function normalizeHora(h) {
   if (!h) return null;
   const raw = h.trim().toLowerCase();
@@ -63,6 +73,11 @@ function normalizeHora(h) {
   return `${String(hhNum).padStart(2, "0")}:${String(mmNum).padStart(2, "0")}`;
 }
 
+  function normalizePhone(p) {
+    if (!p) return "";
+    return p.replace(/\D+/g, "");
+  }
+
 function showAlert(message, type = "warn") {
   const box = document.getElementById("alerta");
   if (!box) {
@@ -78,6 +93,17 @@ function aMinutos(hhmm) {
   if (!norm) return null;
   const [h, m] = norm.split(":").map(Number);
   return h * 60 + m;
+}
+
+function sendWhatsUmbral(med) {
+  const phone = normalizePhone(settings.whatsNumber);
+  if (!phone) {
+    showAlert("Configura un número de WhatsApp para enviar la alerta de umbral.", "error");
+    return;
+  }
+  const text = encodeURIComponent(`⚠️ Alerta de stock bajo: ${med.nombre}. Stock: ${med.stock}. Umbral: ${med.umbral}.`);
+  const url = `https://wa.me/${phone}?text=${text}`;
+  window.open(url, "_blank");
 }
 
 function consumosDeHoy(med) {
@@ -236,6 +262,9 @@ function consumir(index) {
 
   if (med.stock <= med.umbral) {
     showAlert(`⚠️ Quedan ${med.stock} unidades de ${med.nombre}`, "umbral");
+    if (settings.autoWhats) {
+      sendWhatsUmbral(med);
+    }
   }
 
   med.historial.push({
@@ -370,7 +399,7 @@ form.addEventListener("submit", e => {
   const stock = Number(document.getElementById("stock").value);
   const dosis = Number(document.getElementById("dosis").value);
 
-  const horariosStr = prompt("Horarios (HH:MM separados por coma)", "");
+  const horariosStr = prompt("Horarios (HH:MM separados por coma, acepta AM/PM)", "");
   if (horariosStr === null) return;
 
   const horarios = horariosStr
@@ -462,6 +491,23 @@ if (filtroHistMes) {
   filtroHistMes.addEventListener("change", renderHistorialLista);
 }
 renderHistorialLista();
+
+if (waNumberInput) {
+  waNumberInput.value = settings.whatsNumber;
+  waNumberInput.addEventListener("change", () => {
+    settings.whatsNumber = normalizePhone(waNumberInput.value);
+    waNumberInput.value = settings.whatsNumber;
+    guardarSettings();
+  });
+}
+
+if (waAutoInput) {
+  waAutoInput.checked = settings.autoWhats;
+  waAutoInput.addEventListener("change", () => {
+    settings.autoWhats = waAutoInput.checked;
+    guardarSettings();
+  });
+}
 
 /* =====================
     NOTIFICACIONES

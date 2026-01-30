@@ -35,6 +35,25 @@ li {
   margin-bottom: 4px;
 }
 
+.settings {
+  background: #fff;
+  padding: 12px;
+  border-radius: 6px;
+  margin: 10px 0 16px;
+  border: 1px solid #e0e0e0;
+}
+
+.settings label {
+  display: block;
+  margin: 6px 0;
+}
+
+.settings .inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
 #calendario {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
