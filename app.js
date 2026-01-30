@@ -10,9 +10,13 @@ medicamentos = medicamentos.map(med => ({
   horarios: med.horarios || [],
   historial: (med.historial || []).map(h => {
     if (typeof h === "string") {
-      return { fecha: h, hora: "00:00" };
+      return { fecha: h, hora: "00:00", realHora: "00:00" };
     }
-    return h;
+    return {
+      fecha: h.fecha,
+      hora: h.hora,
+      realHora: h.realHora || h.hora || "00:00"
+    };
   })
 }));
 
@@ -29,6 +33,11 @@ function ahora() {
 
 function guardar() {
   localStorage.setItem("medicamentos", JSON.stringify(medicamentos));
+}
+
+function aMinutos(hhmm) {
+  const [h, m] = hhmm.split(":").map(Number);
+  return h * 60 + m;
 }
 
 function consumosDeHoy(med) {
@@ -89,7 +98,7 @@ function renderCalendario() {
 function consumir(index) {
   const med = medicamentos[index];
   const fecha = hoy();
-  const hora = ahora();
+  const horaReal = ahora();
 
   const tomasHoy = consumosDeHoy(med);
   const totalDiario = med.dosis || 1;
@@ -103,21 +112,29 @@ function consumir(index) {
     return;
   }
 
-  let horaAsignada = hora;
+  let horaAsignada = horaReal;
 
   if (med.horarios.length) {
-    if (med.horarios.includes(hora) && !tomasHoy.some(h => h.hora === hora)) {
-      horaAsignada = hora;
-    } else {
-      const pendiente = med.horarios.find(horario => !tomasHoy.some(t => t.hora === horario));
-      horaAsignada = pendiente || hora;
-    }
+    const pendientes = med.horarios.filter(horario => !tomasHoy.some(t => t.hora === horario));
 
-    const duplicada = tomasHoy.some(h => h.hora === horaAsignada && med.horarios.includes(horaAsignada));
-    if (duplicada) {
-      alert("⚠️ Esa toma ya fue registrada hoy.");
+    if (pendientes.length > 0) {
+      const objetivo = pendientes.reduce((acc, horario) => {
+        const diff = Math.abs(aMinutos(horario) - aMinutos(horaReal));
+        if (!acc || diff < acc.diff) return { horario, diff };
+        return acc;
+      }, null);
+
+      horaAsignada = objetivo?.horario || horaReal;
+    } else {
+      alert("✅ Tomas del día ya registradas");
       return;
     }
+  }
+
+  const duplicada = tomasHoy.some(h => h.hora === horaAsignada && med.horarios.includes(horaAsignada));
+  if (duplicada) {
+    alert("⚠️ Esa toma ya fue registrada hoy.");
+    return;
   }
 
   med.stock -= perToma;
@@ -131,7 +148,8 @@ function consumir(index) {
 
   med.historial.push({
     fecha,
-    hora: horaAsignada
+    hora: horaAsignada,
+    realHora: horaReal
   });
 
   const pendientes = Math.max(0, maxTomasHoy - (tomasHoy.length + 1));
@@ -271,7 +289,12 @@ function render() {
     const historialHTML = med.historial.length
       ? `<ul>
           ${med.historial
-            .map(h => `<li>📅 ${h.fecha} ⏰ ${h.hora}</li>`)
+            .map(h => {
+              const detalleReal = h.realHora && h.realHora !== h.hora
+                ? ` (real ${h.realHora})`
+                : "";
+              return `<li>📅 ${h.fecha} ⏰ ${h.hora}${detalleReal}</li>`;
+            })
             .join("")}
         </ul>`
       : "<em>Sin consumo registrado</em>";
