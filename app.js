@@ -32,26 +32,6 @@ function guardar() {
 }
 
 /* =====================
-   RENDER LISTA
-===================== */
-function render() {
-  lista.innerHTML = "";
-
-  medicamentos.forEach((med, index) => {
-    const li = document.createElement("li");
-
-    li.innerHTML = `
-      <strong>${med.nombre}</strong><br>
-      Stock: ${med.stock}<br>
-      Dosis diaria: ${med.dosis}<br>
-      <button onclick="consumir(${index})">Consumir día</button>
-    `;
-
-    lista.appendChild(li);
-  });
-}
-
-/* =====================
    CALENDARIO
 ===================== */
 function renderCalendario() {
@@ -116,26 +96,20 @@ function consumir(index) {
     return;
   }
 
-if (med.stock <= med.umbral) {
-  alert(`⚠️ Quedan ${med.stock} unidades de ${med.nombre}`);
-}
-
-
-
   med.stock -= med.dosis;
 
   if (med.stock < 0) {
     med.stock = 0;
   }
 
+  if (med.stock <= med.umbral) {
+    alert(`⚠️ Quedan ${med.stock} unidades de ${med.nombre}`);
+  }
+
   med.historial.push({
     fecha,
     hora
   });
-
-  if (med.stock <= 5) {
-    alert(`⚠️ Quedan ${med.stock} unidades de ${med.nombre}`);
-  }
 
   guardar();
   render();
@@ -294,6 +268,8 @@ function render() {
   });
 }
 ;
+renderFiltro();
+render();
 renderCalendario();
 const filtro = document.getElementById("filtroMedicamento");
 if (filtro) {
