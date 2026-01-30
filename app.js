@@ -35,6 +35,16 @@ function guardar() {
   localStorage.setItem("medicamentos", JSON.stringify(medicamentos));
 }
 
+function showAlert(message, type = "warn") {
+  const box = document.getElementById("alerta");
+  if (!box) {
+    alert(message);
+    return;
+  }
+  box.className = `alert-box alert-${type}`;
+  box.innerHTML = message;
+}
+
 function aMinutos(hhmm) {
   const [h, m] = hhmm.split(":").map(Number);
   return h * 60 + m;
@@ -100,6 +110,11 @@ function consumir(index) {
   const fecha = hoy();
   const horaReal = ahora();
 
+  if (med.horarios.length !== (med.dosis || 0)) {
+    showAlert("Configura horarios para cada dosis diaria antes de registrar la toma.", "error");
+    return;
+  }
+
   const tomasHoy = consumosDeHoy(med);
   const totalDiario = med.dosis || 1;
   const perToma = med.horarios.length
@@ -108,7 +123,7 @@ function consumir(index) {
   const maxTomasHoy = med.horarios.length || totalDiario;
 
   if (tomasHoy.length >= maxTomasHoy) {
-    alert("✅ Tomás del día ya registradas");
+    showAlert("Las tomas del día ya fueron registradas.", "success");
     return;
   }
 
@@ -126,14 +141,14 @@ function consumir(index) {
 
       horaAsignada = objetivo?.horario || horaReal;
     } else {
-      alert("✅ Tomas del día ya registradas");
+      showAlert("Las tomas del día ya fueron registradas.", "success");
       return;
     }
   }
 
   const duplicada = tomasHoy.some(h => h.hora === horaAsignada && med.horarios.includes(horaAsignada));
   if (duplicada) {
-    alert("⚠️ Esa toma ya fue registrada hoy.");
+    showAlert("Esa toma ya fue registrada en el horario correspondiente.", "error");
     return;
   }
 
@@ -143,7 +158,7 @@ function consumir(index) {
   }
 
   if (med.stock <= med.umbral) {
-    alert(`⚠️ Quedan ${med.stock} unidades de ${med.nombre}`);
+    showAlert(`⚠️ Quedan ${med.stock} unidades de ${med.nombre}`, "umbral");
   }
 
   med.historial.push({
@@ -154,9 +169,9 @@ function consumir(index) {
 
   const pendientes = Math.max(0, maxTomasHoy - (tomasHoy.length + 1));
   if (pendientes > 0) {
-    alert(`Queda registrar ${pendientes} dosis de hoy para ${med.nombre}.`);
+    showAlert(`Faltan ${pendientes} dosis de hoy para ${med.nombre}.`, "warn");
   } else {
-    alert(`✅ Tomas del día de ${med.nombre} completadas.`);
+    showAlert(`Tomas del día de ${med.nombre} completadas.`, "success");
   }
 
   guardar();
@@ -195,6 +210,11 @@ med.horarios = nuevosHorarios
   .split(",")
   .map(h => h.trim())
   .filter(h => h);
+
+  if (med.horarios.length !== Number(nuevaDosis)) {
+    showAlert("La cantidad de horarios debe ser igual a las dosis diarias.", "error");
+    return;
+  }
 
     
   
@@ -259,12 +279,25 @@ form.addEventListener("submit", e => {
   const stock = Number(document.getElementById("stock").value);
   const dosis = Number(document.getElementById("dosis").value);
 
+  const horariosStr = prompt("Horarios (HH:MM separados por coma)", "");
+  if (horariosStr === null) return;
+
+  const horarios = horariosStr
+    .split(",")
+    .map(h => h.trim())
+    .filter(Boolean);
+
+  if (horarios.length !== dosis) {
+    showAlert("La cantidad de horarios debe ser igual a las dosis diarias.", "error");
+    return;
+  }
+
   medicamentos.push({
     nombre,
     stock,
     dosis,
     umbral: 5,
-    horarios: [],
+    horarios,
     historial: []
   });
 

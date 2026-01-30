@@ -39,3 +39,42 @@ li {
   color: white;
   font-weight: bold;
 }
+
+.alert-box {
+  margin: 12px 0;
+  padding: 12px 14px;
+  border-radius: 6px;
+  font-weight: bold;
+  display: none;
+}
+
+.alert-error {
+  display: block;
+  color: #b71c1c;
+  font-size: 1.15rem;
+}
+
+.alert-warn {
+  display: block;
+  color: #e65100;
+  font-size: 1.12rem;
+}
+
+.alert-success {
+  display: block;
+  color: #1b5e20;
+  font-size: 1.12rem;
+}
+
+.alert-umbral {
+  display: block;
+  color: #fff;
+  background: #c62828;
+  font-size: 1.18rem;
+  animation: parpadeo 1s infinite;
+}
+
+@keyframes parpadeo {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
+}
