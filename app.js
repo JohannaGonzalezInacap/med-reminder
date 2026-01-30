@@ -8,6 +8,10 @@ let settings = JSON.parse(localStorage.getItem("configApp")) || {
   whatsNumber: "",
   autoWhats: false
 };
+let reminderState = JSON.parse(localStorage.getItem("reminderState")) || {
+  date: hoy(),
+  entries: {}
+};
 
 // 🔒 Normalizar datos antiguos (muy importante)
 medicamentos = medicamentos.map(med => ({
@@ -45,6 +49,10 @@ function guardar() {
 
 function guardarSettings() {
   localStorage.setItem("configApp", JSON.stringify(settings));
+}
+
+function guardarReminderState() {
+  localStorage.setItem("reminderState", JSON.stringify(reminderState));
 }
 
 function normalizeHora(h) {
@@ -93,6 +101,18 @@ function aMinutos(hhmm) {
   if (!norm) return null;
   const [h, m] = norm.split(":").map(Number);
   return h * 60 + m;
+}
+
+function reminderKey(medIdx, hora, fecha) {
+  return `${fecha}|${medIdx}|${hora}`;
+}
+
+function clearReminderEntry(medIdx, hora, fecha) {
+  const key = reminderKey(medIdx, hora, fecha);
+  if (reminderState.entries[key]) {
+    delete reminderState.entries[key];
+    guardarReminderState();
+  }
 }
 
 function sendWhatsUmbral(med) {
@@ -272,6 +292,8 @@ function consumir(index) {
     hora: horaAsignada,
     realHora: horaReal
   });
+
+  clearReminderEntry(index, horaAsignada, fecha);
 
   const pendientes = Math.max(0, maxTomasHoy - (tomasHoy.length + 1));
   if (pendientes > 0) {
@@ -525,25 +547,49 @@ function revisarRecordatorios() {
   if (!("Notification" in window)) return;
   if (Notification.permission !== "granted") return;
 
-  const ahora = new Date();
+  const now = new Date();
   const fecha = hoy();
-  const horaActual = ahora.toTimeString().slice(0,5);
+  const horaActual = now.toTimeString().slice(0,5);
+  const minutosActual = aMinutos(horaActual);
+  if (reminderState.date !== fecha) {
+    reminderState = { date: fecha, entries: {} };
+    guardarReminderState();
+  }
 
-  medicamentos.forEach(med => {
+  medicamentos.forEach((med, medIdx) => {
     med.horarios.forEach(horaProgramada => {
-
-      if (horaProgramada !== horaActual) return;
+      const minutosProg = aMinutos(horaProgramada);
+      if (minutosProg === null || minutosActual === null) return;
 
       const yaTomado = med.historial.some(h =>
         h.fecha === fecha && h.hora === horaProgramada
       );
 
-      if (yaTomado) return;
+      if (yaTomado) {
+        clearReminderEntry(medIdx, horaProgramada, fecha);
+        return;
+      }
+
+      const diff = minutosActual - minutosProg;
+      if (diff < 0) return; // Aún no es la hora
+
+      const key = reminderKey(medIdx, horaProgramada, fecha);
+      const entry = reminderState.entries[key] || { attempts: 0, lastMin: null };
+
+      if (entry.attempts >= 3) return;
+
+      const puedeEnviar = entry.lastMin === null || (minutosActual - entry.lastMin) >= 5;
+      if (!puedeEnviar) return;
 
       new Notification("Recordatorio de medicamento", {
         body: `${med.nombre} - toma programada a las ${horaProgramada}`
       });
 
+      reminderState.entries[key] = {
+        attempts: entry.attempts + 1,
+        lastMin: minutosActual
+      };
+      guardarReminderState();
     });
   });
 }
