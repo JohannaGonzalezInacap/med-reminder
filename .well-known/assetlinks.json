@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "io.github.johannagonzalezinacap.twa",
+      "sha256_cert_fingerprints": [
+        "9A:5E:16:AF:53:E6:1C:D5:2C:0F:74:12:72:41:56:EF:0E:B5:BD:0D:52:13:AF:2C:8F:86:04:EF:DD:2F:3D:EC"
+      ]
+    }
+  }
+]
