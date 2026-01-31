@@ -1,0 +1,9 @@
+.gradle/
+build/
+app/build/
+local.properties
+*.keystore
+*.aab
+*.apk
+*.idsig
+hs_err_pid*.log
