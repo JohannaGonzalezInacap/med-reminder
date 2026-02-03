@@ -54,6 +54,54 @@ li {
   gap: 6px;
 }
 
+.notif-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+#notifStatus {
+  font-weight: 600;
+  color: #1b5e20;
+}
+
+.push-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.push-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.push-label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+#pushData {
+  width: 100%;
+  min-height: 80px;
+  resize: vertical;
+  font-family: monospace;
+  font-size: 0.9rem;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: #fafafa;
+}
+
+#pushStatus {
+  font-weight: 600;
+  color: #1b5e20;
+}
+
 #calendario {
   display: grid;
   grid-template-columns: repeat(7, 1fr);

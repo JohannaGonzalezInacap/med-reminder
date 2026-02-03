@@ -16,6 +16,19 @@
 
   <section class="settings">
     <h2>⚙️ Alertas</h2>
+    <div class="notif-row">
+      <button type="button" id="notifBtn">Activar notificaciones</button>
+      <span id="notifStatus" aria-live="polite"></span>
+    </div>
+    <div class="push-row">
+      <div class="push-actions">
+        <button type="button" id="pushBtn">Activar recordatorios push</button>
+        <span id="pushStatus" aria-live="polite"></span>
+      </div>
+      <label class="push-label">Suscripción (cópiala en tu servidor para enviar los avisos):
+        <textarea id="pushData" readonly rows="4" placeholder="Aún no hay suscripción activa"></textarea>
+      </label>
+    </div>
     <label>
       Número WhatsApp (solo dígitos):
       <input type="text" id="waNumber" inputmode="tel" pattern="[0-9]+" placeholder="56912345678">
@@ -64,6 +77,53 @@
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("./sw.js");
 }
+</script>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyC97Y2EYed-MN_LfAlK_Xe4XBariy6ct1o",
+    authDomain: "med-reminder-ab396.firebaseapp.com",
+    projectId: "med-reminder-ab396",
+    storageBucket: "med-reminder-ab396.firebasestorage.app",
+    messagingSenderId: "916040866686",
+    appId: "1:916040866686:web:c7cde5727063a02772312f"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const messaging = getMessaging(app);
+
+  async function initNotifications() {
+    if (!("Notification" in window)) {
+      console.log("Notificaciones no soportadas en este navegador");
+      return;
+    }
+
+    const permission = await Notification.requestPermission();
+
+    if (permission !== "granted") {
+      console.log("Permiso de notificación rechazado");
+      return;
+    }
+
+    const swRegistration = await navigator.serviceWorker?.ready.catch(() => null);
+    if (!swRegistration) {
+      console.log("No se pudo acceder al Service Worker para FCM");
+      return;
+    }
+
+    const token = await getToken(messaging, {
+      vapidKey: "BKFNRtTEhfw0Q5j27w-3Lr7hDU3AG-cWxKv7NZqcrFtguRIMt268yIMsSft4mabJyAGrKET_WRlEntldbE_GM0A",
+      serviceWorkerRegistration: swRegistration
+    });
+
+    console.log("FCM token:", token);
+  }
+
+  initNotifications();
+
 </script>
 
 </body>

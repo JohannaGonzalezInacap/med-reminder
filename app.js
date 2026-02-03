@@ -2,6 +2,14 @@ const form = document.getElementById("medForm");
 const lista = document.getElementById("listaMedicamentos");
 const waNumberInput = document.getElementById("waNumber");
 const waAutoInput = document.getElementById("waAuto");
+const notifBtn = document.getElementById("notifBtn");
+const notifStatus = document.getElementById("notifStatus");
+const pushBtn = document.getElementById("pushBtn");
+const pushStatus = document.getElementById("pushStatus");
+const pushData = document.getElementById("pushData");
+
+let notifWarned = false;
+const VAPID_PUBLIC_KEY = "BKFNRtTEhfw0Q5j27w-3Lr7hDU3AG-cWxKv7NZqcrFtguRIMt268yIMsSft4mabJyAGrKET_WRlEntldbE_GM0A"; // Clave pública VAPID real
 
 let medicamentos = JSON.parse(localStorage.getItem("medicamentos")) || [];
 let settings = JSON.parse(localStorage.getItem("configApp")) || {
@@ -94,6 +102,162 @@ function showAlert(message, type = "warn") {
   }
   box.className = `alert-box alert-${type}`;
   box.innerHTML = message;
+}
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; i++) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
+function renderNotifStatus() {
+  if (!notifStatus || !notifBtn) return;
+
+  if (!("Notification" in window)) {
+    notifStatus.textContent = "Notificaciones no disponibles en este dispositivo.";
+    notifBtn.disabled = true;
+    return;
+  }
+
+  const perm = Notification.permission;
+  if (perm === "granted") {
+    notifStatus.textContent = "Notificaciones activadas.";
+    notifBtn.textContent = "Revisar permisos";
+  } else if (perm === "denied") {
+    notifStatus.textContent = "Bloqueadas por el navegador. Habilítalas en ajustes.";
+    notifBtn.textContent = "Volver a intentar";
+  } else {
+    notifStatus.textContent = "Pendientes de activar.";
+    notifBtn.textContent = "Activar notificaciones";
+  }
+}
+
+async function ensureNotifPermission() {
+  if (!("Notification" in window)) return "unsupported";
+
+  let perm = Notification.permission;
+  if (perm === "default") {
+    try {
+      perm = await Notification.requestPermission();
+    } catch (err) {
+      console.error("Permission request failed", err);
+      perm = "denied";
+    }
+  }
+
+  renderNotifStatus();
+  return perm;
+}
+
+function renderPushUI(subscription) {
+  if (!pushBtn || !pushStatus || !pushData) return;
+
+  if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+    pushStatus.textContent = "Push no soportado en este dispositivo/navegador.";
+    pushBtn.disabled = true;
+    pushData.value = "";
+    return;
+  }
+
+  if (subscription) {
+    pushBtn.textContent = "Suscripción activa";
+    pushBtn.disabled = true;
+    pushStatus.textContent = "Lista. Envía notificaciones desde tu servidor.";
+    pushData.value = JSON.stringify(subscription, null, 2);
+  } else {
+    pushBtn.textContent = "Activar recordatorios push";
+    pushBtn.disabled = false;
+    pushStatus.textContent = "Pendiente de activar.";
+    pushData.value = "";
+  }
+}
+
+async function getSWRegistration() {
+  if (!("serviceWorker" in navigator)) return null;
+  try {
+    return await navigator.serviceWorker.ready;
+  } catch (err) {
+    console.error("SW ready error", err);
+    return null;
+  }
+}
+
+async function loadExistingSubscription() {
+  const reg = await getSWRegistration();
+  if (!reg || !reg.pushManager) return null;
+  try {
+    return await reg.pushManager.getSubscription();
+  } catch (err) {
+    console.error("Get subscription error", err);
+    return null;
+  }
+}
+
+async function subscribePush() {
+  if (!VAPID_PUBLIC_KEY || VAPID_PUBLIC_KEY.startsWith("REEMPLAZA")) {
+    showAlert("Configura tu clave pública VAPID en app.js para habilitar los recordatorios push.", "error");
+    return null;
+  }
+
+  const perm = await ensureNotifPermission();
+  if (perm !== "granted") {
+    showAlert("Debes permitir notificaciones para activar los recordatorios push.", "error");
+    return null;
+  }
+
+  const reg = await getSWRegistration();
+  if (!reg || !reg.pushManager) {
+    showAlert("No se pudo acceder al Service Worker para crear la suscripción.", "error");
+    return null;
+  }
+
+  try {
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+    });
+    localStorage.setItem("pushSubscription", JSON.stringify(sub));
+    showAlert("Suscripción push creada. Copia el JSON y úsalo en tu servidor para enviar avisos.", "success");
+    return sub;
+  } catch (err) {
+    console.error("Subscribe push error", err);
+    showAlert("No se pudo crear la suscripción push. Revisa permisos y la clave VAPID.", "error");
+    return null;
+  }
+}
+
+async function dispatchNotification(title, body) {
+  if (!("Notification" in window)) return false;
+
+  const perm = Notification.permission === "granted"
+    ? "granted"
+    : await ensureNotifPermission();
+
+  if (perm !== "granted") return false;
+
+  try {
+    const reg = await navigator.serviceWorker?.ready;
+    if (reg?.showNotification) {
+      await reg.showNotification(title, { body });
+      return true;
+    }
+  } catch (err) {
+    console.error("SW notification error", err);
+  }
+
+  try {
+    new Notification(title, { body });
+    return true;
+  } catch (err) {
+    console.error("Window notification error", err);
+  }
+
+  return false;
 }
 
 function aMinutos(hhmm) {
@@ -531,14 +695,50 @@ if (waAutoInput) {
   });
 }
 
+renderPushUI(null);
+
+if (pushBtn) {
+  pushBtn.addEventListener("click", async () => {
+    const existing = await loadExistingSubscription();
+    if (existing) {
+      renderPushUI(existing);
+      showAlert("Ya tienes una suscripción activa. Usa el JSON para enviar los avisos.", "success");
+      return;
+    }
+
+    const sub = await subscribePush();
+    renderPushUI(sub);
+    if (sub) {
+      pushData.value = JSON.stringify(sub, null, 2);
+    }
+  });
+}
+
 /* =====================
     NOTIFICACIONES
 ===================== */
-if ("Notification" in window) {
-  if (Notification.permission === "default") {
-    Notification.requestPermission();
-  }
+renderNotifStatus();
+
+if (notifBtn) {
+  notifBtn.addEventListener("click", async () => {
+    const perm = await ensureNotifPermission();
+    if (perm !== "granted" && !notifWarned) {
+      showAlert("Activa las notificaciones del navegador para ver recordatorios en el móvil.", "error");
+      notifWarned = true;
+    }
+  });
 }
+
+// Al cargar, intenta recuperar suscripción existente para mostrarla
+loadExistingSubscription().then(sub => {
+  const saved = localStorage.getItem("pushSubscription");
+  const parsedSaved = saved ? JSON.parse(saved) : null;
+  const subscription = sub || parsedSaved;
+  renderPushUI(subscription);
+  if (subscription && pushData) {
+    pushData.value = JSON.stringify(subscription, null, 2);
+  }
+});
 
 /* =====================
     RECORDATORIOS
@@ -581,8 +781,14 @@ function revisarRecordatorios() {
       const puedeEnviar = entry.lastMin === null || (minutosActual - entry.lastMin) >= 5;
       if (!puedeEnviar) return;
 
-      new Notification("Recordatorio de medicamento", {
-        body: `${med.nombre} - toma programada a las ${horaProgramada}`
+      dispatchNotification(
+        "Recordatorio de medicamento",
+        `${med.nombre} - toma programada a las ${horaProgramada}`
+      ).then(ok => {
+        if (!ok && !notifWarned) {
+          showAlert("El navegador bloqueó las notificaciones. Actívalas para recibir recordatorios en el móvil.", "error");
+          notifWarned = true;
+        }
       });
 
       reminderState.entries[key] = {
