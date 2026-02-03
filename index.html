@@ -72,10 +72,20 @@
   </footer>
 
 
+  <script>
+    window.APP_CONFIG = window.APP_CONFIG || {};
+  </script>
+  <script src="config.js"></script>
   <script src="app.js"></script>
   <script>
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("./sw.js");
+}
+</script>
+
+<script>
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("./firebase-messaging-sw.js");
 }
 </script>
 

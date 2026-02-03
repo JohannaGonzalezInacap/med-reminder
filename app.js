@@ -9,7 +9,8 @@ const pushStatus = document.getElementById("pushStatus");
 const pushData = document.getElementById("pushData");
 
 let notifWarned = false;
-const VAPID_PUBLIC_KEY = "BKFNRtTEhfw0Q5j27w-3Lr7hDU3AG-cWxKv7NZqcrFtguRIMt268yIMsSft4mabJyAGrKET_WRlEntldbE_GM0A"; // Clave pública VAPID real
+const APP_CONFIG = (typeof window !== "undefined" ? window.APP_CONFIG || {} : {});
+const VAPID_PUBLIC_KEY = APP_CONFIG.VAPID_PUBLIC_KEY || ""; // Se inyecta en runtime (config.js)
 
 let medicamentos = JSON.parse(localStorage.getItem("medicamentos")) || [];
 let settings = JSON.parse(localStorage.getItem("configApp")) || {
