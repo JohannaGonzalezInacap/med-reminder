@@ -36,6 +36,11 @@ Lightweight web app to track medicines, daily doses, and schedules with local re
 3) Concede permiso de notificaciones cuando el navegador lo solicite para recordatorios locales.
 4) Para instalar como PWA: abre la app, usa el menú “Instalar”/“Agregar a inicio” del navegador.
 
+### 🔑 Configuración VAPID (notificaciones push)
+- Copia `config.example.js` a `config.js` y coloca tu clave pública VAPID (no subas `config.js` al repo).
+- Asegúrate de que `config.js` se sirva junto con el sitio en tu hosting (p. ej., GitHub Pages). Debe cargarse antes de `app.js`.
+- Si rotas la clave, solo actualiza `config.js` en el despliegue; no requiere cambios en código.
+
 ---
 ## 📲 Uso principal / Core Usage
 1) Agregar medicamento: introduce nombre, stock, dosis diaria y horarios (uno por cada dosis). El formato puede ser `08:00`, `8:00 am`, `20:30`, `8:30 pm`.
