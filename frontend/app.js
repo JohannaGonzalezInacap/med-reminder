@@ -10,7 +10,9 @@ const pushData = document.getElementById("pushData");
 
 let notifWarned = false;
 const APP_CONFIG = (typeof window !== "undefined" ? window.APP_CONFIG || {} : {});
-const VAPID_PUBLIC_KEY = APP_CONFIG.VAPID_PUBLIC_KEY || ""; // Se inyecta en runtime (config.js)
+const ONE_SIGNAL_APP_ID = APP_CONFIG.ONE_SIGNAL_APP_ID || "";
+const ONE_SIGNAL_SW_PATH = APP_CONFIG.ONE_SIGNAL_SW_PATH || "OneSignalSDK-v16-ServiceWorker/OneSignalSDKWorker.js";
+let oneSignalReady = null;
 
 let medicamentos = JSON.parse(localStorage.getItem("medicamentos")) || [];
 let settings = JSON.parse(localStorage.getItem("configApp")) || {
@@ -155,79 +157,84 @@ async function ensureNotifPermission() {
   return perm;
 }
 
-function renderPushUI(subscription) {
+function renderPushUI(userId, permission) {
   if (!pushBtn || !pushStatus || !pushData) return;
 
-  if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
-    pushStatus.textContent = "Push no soportado en este dispositivo/navegador.";
+  const perm = permission || Notification.permission;
+  const isReady = Boolean(userId) && perm === "granted";
+
+  if (!ONE_SIGNAL_APP_ID) {
+    pushStatus.textContent = "Configura ONE_SIGNAL_APP_ID en config.js";
     pushBtn.disabled = true;
     pushData.value = "";
     return;
   }
 
-  if (subscription) {
-    pushBtn.textContent = "Suscripción activa";
-    pushBtn.disabled = true;
-    pushStatus.textContent = "Lista. Envía notificaciones desde tu servidor.";
-    pushData.value = JSON.stringify(subscription, null, 2);
-  } else {
-    pushBtn.textContent = "Activar recordatorios push";
-    pushBtn.disabled = false;
-    pushStatus.textContent = "Pendiente de activar.";
-    pushData.value = "";
-  }
+  pushBtn.textContent = isReady ? "Suscripción activa" : "Activar recordatorios push";
+  pushBtn.disabled = false;
+  pushStatus.textContent = isReady
+    ? "OneSignal listo. Usa el ID para enviar avisos."
+    : "Pendiente de activar.";
+  pushData.value = isReady ? JSON.stringify({ oneSignalUserId: userId }, null, 2) : "";
 }
 
-async function getSWRegistration() {
-  if (!("serviceWorker" in navigator)) return null;
-  try {
-    return await navigator.serviceWorker.ready;
-  } catch (err) {
-    console.error("SW ready error", err);
+function ensureOneSignal() {
+  if (!ONE_SIGNAL_APP_ID) {
+    showAlert("Configura tu ONE_SIGNAL_APP_ID en config.js", "error");
     return null;
   }
+
+  if (oneSignalReady) return oneSignalReady;
+
+  if (!window.OneSignalDeferred) {
+    window.OneSignalDeferred = [];
+  }
+
+  oneSignalReady = new Promise((resolve, reject) => {
+    window.OneSignalDeferred.push(async function(OneSignal) {
+      try {
+        await OneSignal.init({
+          appId: ONE_SIGNAL_APP_ID,
+          serviceWorkerPath: ONE_SIGNAL_SW_PATH,
+          serviceWorkerParam: { scope: "./" },
+          allowLocalhostAsSecureOrigin: true
+        });
+        resolve(OneSignal);
+      } catch (err) {
+        console.error("OneSignal init error", err);
+        reject(err);
+      }
+    });
+  });
+
+  return oneSignalReady;
 }
 
-async function loadExistingSubscription() {
-  const reg = await getSWRegistration();
-  if (!reg || !reg.pushManager) return null;
-  try {
-    return await reg.pushManager.getSubscription();
-  } catch (err) {
-    console.error("Get subscription error", err);
-    return null;
-  }
+async function getOneSignalState() {
+  const OneSignal = await ensureOneSignal().catch(() => null);
+  if (!OneSignal) return { userId: null, permission: Notification.permission };
+
+  const permission = await OneSignal.Notifications.getPermissionState();
+  const userId = await OneSignal.User.getId();
+  return { userId, permission };
 }
 
 async function subscribePush() {
-  if (!VAPID_PUBLIC_KEY || VAPID_PUBLIC_KEY.startsWith("REEMPLAZA")) {
-    showAlert("Configura tu clave pública VAPID en app.js para habilitar los recordatorios push.", "error");
-    return null;
-  }
-
-  const perm = await ensureNotifPermission();
-  if (perm !== "granted") {
-    showAlert("Debes permitir notificaciones para activar los recordatorios push.", "error");
-    return null;
-  }
-
-  const reg = await getSWRegistration();
-  if (!reg || !reg.pushManager) {
-    showAlert("No se pudo acceder al Service Worker para crear la suscripción.", "error");
-    return null;
-  }
+  const OneSignal = await ensureOneSignal().catch(() => null);
+  if (!OneSignal) return null;
 
   try {
-    const sub = await reg.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
-    });
-    localStorage.setItem("pushSubscription", JSON.stringify(sub));
-    showAlert("Suscripción push creada. Copia el JSON y úsalo en tu servidor para enviar avisos.", "success");
-    return sub;
+    await OneSignal.Notifications.requestPermission();
+    const { userId, permission } = await getOneSignalState();
+    if (!userId) {
+      showAlert("No se pudo obtener el ID de OneSignal. Revisa permisos.", "error");
+      return null;
+    }
+    showAlert("Suscripción creada en OneSignal. Usa el ID para enviar avisos.", "success");
+    return { userId, permission };
   } catch (err) {
-    console.error("Subscribe push error", err);
-    showAlert("No se pudo crear la suscripción push. Revisa permisos y la clave VAPID.", "error");
+    console.error("OneSignal subscribe error", err);
+    showAlert("No se pudo completar la suscripción OneSignal.", "error");
     return null;
   }
 }
@@ -700,17 +707,18 @@ renderPushUI(null);
 
 if (pushBtn) {
   pushBtn.addEventListener("click", async () => {
-    const existing = await loadExistingSubscription();
-    if (existing) {
-      renderPushUI(existing);
-      showAlert("Ya tienes una suscripción activa. Usa el JSON para enviar los avisos.", "success");
+    const state = await getOneSignalState();
+    if (state.userId) {
+      renderPushUI(state.userId, state.permission);
+      showAlert("Ya tienes una suscripción activa en OneSignal.", "success");
+      if (pushData) pushData.value = JSON.stringify({ oneSignalUserId: state.userId }, null, 2);
       return;
     }
 
     const sub = await subscribePush();
-    renderPushUI(sub);
     if (sub) {
-      pushData.value = JSON.stringify(sub, null, 2);
+      renderPushUI(sub.userId, sub.permission);
+      if (pushData) pushData.value = JSON.stringify({ oneSignalUserId: sub.userId }, null, 2);
     }
   });
 }
@@ -730,14 +738,11 @@ if (notifBtn) {
   });
 }
 
-// Al cargar, intenta recuperar suscripción existente para mostrarla
-loadExistingSubscription().then(sub => {
-  const saved = localStorage.getItem("pushSubscription");
-  const parsedSaved = saved ? JSON.parse(saved) : null;
-  const subscription = sub || parsedSaved;
-  renderPushUI(subscription);
-  if (subscription && pushData) {
-    pushData.value = JSON.stringify(subscription, null, 2);
+// Al cargar, intenta recuperar estado de OneSignal y mostrar el ID si existe
+getOneSignalState().then(state => {
+  renderPushUI(state.userId, state.permission);
+  if (state.userId && pushData) {
+    pushData.value = JSON.stringify({ oneSignalUserId: state.userId }, null, 2);
   }
 });
 

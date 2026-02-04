@@ -36,10 +36,10 @@ Lightweight web app to track medicines, daily doses, and schedules with local re
 3) Concede permiso de notificaciones cuando el navegador lo solicite para recordatorios locales.
 4) Para instalar como PWA: abre la app, usa el menú “Instalar”/“Agregar a inicio” del navegador.
 
-### 🔑 Configuración VAPID (notificaciones push)
-- Copia `config.example.js` a `config.js` y coloca tu clave pública VAPID (no subas `config.js` al repo).
-- Asegúrate de que `config.js` se sirva junto con el sitio en tu hosting (p. ej., GitHub Pages). Debe cargarse antes de `app.js`.
-- Si rotas la clave, solo actualiza `config.js` en el despliegue; no requiere cambios en código.
+### 🔑 Configuración OneSignal (notificaciones push)
+- Copia `config.example.js` a `config.js` y coloca tu `ONE_SIGNAL_APP_ID` (no subas `config.js` al repo).
+- Se incluye el worker en `OneSignalSDK-v16-ServiceWorker/OneSignalSDKWorker.js`; si cambias la ruta, actualiza `ONE_SIGNAL_SW_PATH` en `config.js`.
+- `config.js` se carga antes de `app.js`; rota la App ID solo actualizando `config.js` en el despliegue.
 
 ---
 ## 📲 Uso principal / Core Usage

@@ -1,8 +1,8 @@
 {
   "name": "Recordatorio de Medicamentos",
   "short_name": "Medicamentos",
-  "start_url": "/med-reminder/",
-  "scope": "/med-reminder/",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#f4f6f8",

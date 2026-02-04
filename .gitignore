@@ -1,1 +1,3 @@
-config.js
+frontend/config.js
+backend/functions/node_modules/
+backend/functions/.env
