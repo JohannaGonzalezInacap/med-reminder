@@ -194,11 +194,12 @@ function ensureOneSignal() {
     window.OneSignalDeferred.push(async function(OneSignal) {
       try {
         await OneSignal.init({
-          appId: ONE_SIGNAL_APP_ID,
-          serviceWorkerPath: "OneSignalSDKWorker.js",
-          serviceWorkerParam: { scope: "/med-reminder/" },
-          allowLocalhostAsSecureOrigin: true
-        });
+  appId: ONE_SIGNAL_APP_ID,
+  serviceWorkerPath: "/med-reminder/OneSignalSDKWorker.js",
+  serviceWorkerParam: { scope: "/med-reminder/" },
+  allowLocalhostAsSecureOrigin: true
+});
+
         resolve(OneSignal);
       } catch (err) {
         console.error("OneSignal init error", err);
