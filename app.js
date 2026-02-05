@@ -211,33 +211,59 @@ function ensureOneSignal() {
 }
 
 async function getOneSignalState() {
-  const OneSignal = await ensureOneSignal().catch(() => null);
-  if (!OneSignal) return { userId: null, permission: Notification.permission };
+
+  const p = ensureOneSignal();
+  if (!p) return { userId: null, permission: Notification.permission };
+
+  let OneSignal;
+
+  try {
+    OneSignal = await p;
+  } catch (e) {
+    return { userId: null, permission: Notification.permission };
+  }
 
   const permission = await OneSignal.Notifications.getPermissionState();
   const userId = await OneSignal.User.getId();
+
   return { userId, permission };
 }
 
+
 async function subscribePush() {
-  const OneSignal = await ensureOneSignal().catch(() => null);
-  if (!OneSignal) return null;
+
+  const p = ensureOneSignal();
+  if (!p) return null;
+
+  let OneSignal;
+
+  try {
+    OneSignal = await p;
+  } catch (e) {
+    return null;
+  }
 
   try {
     await OneSignal.Notifications.requestPermission();
+
     const { userId, permission } = await getOneSignalState();
+
     if (!userId) {
       showAlert("No se pudo obtener el ID de OneSignal. Revisa permisos.", "error");
       return null;
     }
+
     showAlert("Suscripción creada en OneSignal. Usa el ID para enviar avisos.", "success");
     return { userId, permission };
+
   } catch (err) {
     console.error("OneSignal subscribe error", err);
     showAlert("No se pudo completar la suscripción OneSignal.", "error");
     return null;
   }
 }
+
+
 
 async function dispatchNotification(title, body) {
   if (!("Notification" in window)) return false;
