@@ -196,7 +196,7 @@ function ensureOneSignal() {
         await OneSignal.init({
           appId: ONE_SIGNAL_APP_ID,
           serviceWorkerPath: "OneSignalSDKWorker.js",
-          serviceWorkerParam: { scope: "/" },
+          serviceWorkerParam: { scope: "/med-reminder/" },
           allowLocalhostAsSecureOrigin: true
         });
         resolve(OneSignal);
@@ -703,7 +703,8 @@ if (waAutoInput) {
   });
 }
 
-renderPushUI(null);
+renderPushUI(null, Notification.permission);
+
 
 if (pushBtn) {
   pushBtn.addEventListener("click", async () => {
