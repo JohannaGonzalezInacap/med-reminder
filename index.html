@@ -10,22 +10,7 @@
   <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
   <script src="config.js"></script>
   <script src="app.js"></script>
-<script>
-window.OneSignalDeferred = window.OneSignalDeferred || [];
-OneSignalDeferred.push(async function(OneSignal) {
 
-  await OneSignal.init({
-    appId: window.APP_CONFIG.ONE_SIGNAL_APP_ID,
-
-    serviceWorkerPath: "/med-reminder/OneSignalSDKWorker.js",
-    serviceWorkerParam: { scope: "/med-reminder/" },
-
-    notifyButton: {
-      enable: false
-    }
-  });
-
-});
 </script>
 
 </head>
@@ -91,12 +76,6 @@ OneSignalDeferred.push(async function(OneSignal) {
   <footer style="margin-top:20px; font-size:0.9rem;">
     <a href="privacy-policy.md" target="_blank">Política de Privacidad / Privacy Policy</a>
   </footer>
-
-  <script>
-    window.APP_CONFIG = window.APP_CONFIG || {};
-  </script>
-  
-  
-
+ 
 </body>
 </html>

@@ -808,46 +808,4 @@ function revisarRecordatorios() {
 setInterval(revisarRecordatorios, 60000);
 revisarRecordatorios();
 
-//-----Activar notificaciones-----
-const notifBtn = document.getElementById("notifBtn");
-const notifStatus = document.getElementById("notifStatus");
-const pushData = document.getElementById("pushData");
-
-if (notifBtn) {
-  notifBtn.addEventListener("click", async () => {
-
-    if (!window.OneSignalDeferred) {
-      notifStatus.textContent = "OneSignal no está cargado.";
-      return;
-    }
-
-    OneSignalDeferred.push(async function (OneSignal) {
-
-      try {
-
-        const permission = await OneSignal.Notifications.permission;
-
-        if (permission !== true) {
-          await OneSignal.Notifications.requestPermission();
-        }
-
-        const id = await OneSignal.User.PushSubscription.id;
-
-        if (id) {
-          notifStatus.textContent = "Notificaciones activadas.";
-          pushData.value = id;
-        } else {
-          notifStatus.textContent = "Suscripción creada, recargando...";
-          location.reload();
-        }
-
-      } catch (e) {
-        console.error(e);
-        notifStatus.textContent = "Error al activar notificaciones.";
-      }
-
-    });
-
-  });
-}
 
