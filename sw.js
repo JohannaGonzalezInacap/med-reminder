@@ -1,4 +1,4 @@
-const CACHE_NAME = "med-app-v4";
+const CACHE_NAME = "med-app-v5";
 
 const ASSETS = [
   "./",
@@ -11,7 +11,12 @@ const ASSETS = [
   "./icon-512.png"
 ];
 
-
+self.addEventListener("install", event => {
+  self.skipWaiting();
+  event.waitUntil(
+    caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS))
+  );
+});
 
 self.addEventListener("activate", event => {
   event.waitUntil(
@@ -24,7 +29,6 @@ self.addEventListener("activate", event => {
     ).then(() => self.clients.claim())
   );
 });
-
 
 self.addEventListener("fetch", event => {
 

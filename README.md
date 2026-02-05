@@ -38,7 +38,7 @@ Lightweight web app to track medicines, daily doses, and schedules with local re
 
 ### 🔑 Configuración OneSignal (notificaciones push)
 - Copia `config.example.js` a `config.js` y coloca tu `ONE_SIGNAL_APP_ID` (no subas `config.js` al repo).
-- Se incluye el worker en `OneSignalSDK-v16-ServiceWorker/OneSignalSDKWorker.js`; si cambias la ruta, actualiza `ONE_SIGNAL_SW_PATH` en `config.js`.
+- El worker está en la raíz como `OneSignalSDKWorker.js`; si cambias la ruta, actualiza `ONE_SIGNAL_SW_PATH` en `config.js`.
 - `config.js` se carga antes de `app.js`; rota la App ID solo actualizando `config.js` en el despliegue.
 
 ---

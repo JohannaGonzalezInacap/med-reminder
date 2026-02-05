@@ -11,7 +11,7 @@ const pushData = document.getElementById("pushData");
 let notifWarned = false;
 const APP_CONFIG = (typeof window !== "undefined" ? window.APP_CONFIG || {} : {});
 const ONE_SIGNAL_APP_ID = APP_CONFIG.ONE_SIGNAL_APP_ID || "";
-const ONE_SIGNAL_SW_PATH = APP_CONFIG.ONE_SIGNAL_SW_PATH || "OneSignalSDK-v16-ServiceWorker/OneSignalSDKWorker.js";
+const ONE_SIGNAL_SW_PATH = APP_CONFIG.ONE_SIGNAL_SW_PATH || "OneSignalSDKWorker.js";
 let oneSignalReady = null;
 
 let medicamentos = JSON.parse(localStorage.getItem("medicamentos")) || [];
