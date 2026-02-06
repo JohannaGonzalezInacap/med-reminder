@@ -197,7 +197,6 @@ function ensureOneSignal() {
   appId: ONE_SIGNAL_APP_ID,
   serviceWorkerPath: "/OneSignalSDKWorker.js",
   serviceWorkerParam: { scope: "/" },
-  allowLocalhostAsSecureOrigin: true
 });
 
 resolve(OneSignal);
