@@ -195,12 +195,12 @@ function ensureOneSignal() {
       try {
         await OneSignal.init({
   appId: ONE_SIGNAL_APP_ID,
-  serviceWorkerPath: "/med-reminder/OneSignalSDKWorker.js",
-  serviceWorkerParam: { scope: "/med-reminder/" },
+  serviceWorkerPath: "/OneSignalSDKWorker.js",
+  serviceWorkerParam: { scope: "/" },
   allowLocalhostAsSecureOrigin: true
 });
 
-        resolve(OneSignal);
+resolve(OneSignal);
       } catch (err) {
         console.error("OneSignal init error", err);
         reject(err);
