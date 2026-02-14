@@ -36,10 +36,10 @@ Lightweight web app to track medicines, daily doses, and schedules with local re
 3) Concede permiso de notificaciones cuando el navegador lo solicite para recordatorios locales.
 4) Para instalar como PWA: abre la app, usa el menú “Instalar”/“Agregar a inicio” del navegador.
 
-### 🔑 Configuración OneSignal (notificaciones push)
-- Copia `config.example.js` a `config.js` y coloca tu `ONE_SIGNAL_APP_ID` (no subas `config.js` al repo).
-- El worker está en la raíz como `OneSignalSDKWorker.js`; si cambias la ruta, actualiza `ONE_SIGNAL_SW_PATH` en `config.js`.
-- `config.js` se carga antes de `app.js`; rota la App ID solo actualizando `config.js` en el despliegue.
+### 🔑 Configuración Firebase Cloud Messaging (push)
+- Copia `config.example.js` a `config.js` y completa `firebaseConfig` + `vapidKey` de tu proyecto Firebase (Cloud Messaging). No subas `config.js` al repo.
+- El service worker de PWA y push es `sw.js`; si cambias la ruta, ajusta el registro en `app.js`.
+- El botón “Activar recordatorios push” mostrará el token FCM en la caja de texto. Úsalo en tu backend (`sendPush` en Cloud Functions) para enviar avisos.
 
 ---
 ## 📲 Uso principal / Core Usage

@@ -9,10 +9,13 @@ const pushStatus = document.getElementById("pushStatus");
 const pushData = document.getElementById("pushData");
 
 let notifWarned = false;
-const APP_CONFIG = (typeof window !== "undefined" ? window.APP_CONFIG || {} : {});
-const ONE_SIGNAL_APP_ID = APP_CONFIG.ONE_SIGNAL_APP_ID || "";
-const ONE_SIGNAL_SW_PATH = APP_CONFIG.ONE_SIGNAL_SW_PATH || "OneSignalSDKWorker.js";
-let oneSignalReady = null;
+const APP_CONFIG = (typeof globalThis !== "undefined" ? (globalThis.APP_CONFIG || {}) : {});
+const FIREBASE_CONFIG = APP_CONFIG.firebaseConfig || null;
+const VAPID_KEY = APP_CONFIG.vapidKey || "";
+let messagingInstance = null;
+let messagingRegistration = null;
+let cachedFcmToken = (typeof localStorage !== "undefined" ? localStorage.getItem("fcmToken") : "") || "";
+let baseSwRegistration = null;
 
 let medicamentos = JSON.parse(localStorage.getItem("medicamentos")) || [];
 let settings = JSON.parse(localStorage.getItem("configApp")) || {
@@ -107,16 +110,6 @@ function showAlert(message, type = "warn") {
   box.innerHTML = message;
 }
 
-function urlBase64ToUint8Array(base64String) {
-  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
-  const rawData = atob(base64);
-  const outputArray = new Uint8Array(rawData.length);
-  for (let i = 0; i < rawData.length; i++) {
-    outputArray[i] = rawData.charCodeAt(i);
-  }
-  return outputArray;
-}
 
 function renderNotifStatus() {
   if (!notifStatus || !notifBtn) return;
@@ -157,108 +150,104 @@ async function ensureNotifPermission() {
   return perm;
 }
 
-function renderPushUI(userId, permission) {
+function renderPushUI(token, permission) {
   if (!pushBtn || !pushStatus || !pushData) return;
 
   const perm = permission || Notification.permission;
-  const isReady = Boolean(userId) && perm === "granted";
+  const hasConfig = FIREBASE_CONFIG && FIREBASE_CONFIG.apiKey;
+  const hasVapid = Boolean(VAPID_KEY);
+  const isReady = Boolean(token) && perm === "granted";
 
-  if (!ONE_SIGNAL_APP_ID) {
-    pushStatus.textContent = "Configura ONE_SIGNAL_APP_ID en config.js";
+  if (!hasConfig || !hasVapid) {
+    pushStatus.textContent = "Configura firebaseConfig y vapidKey en config.js";
     pushBtn.disabled = true;
     pushData.value = "";
     return;
   }
 
-  pushBtn.textContent = isReady ? "Suscripción activa" : "Activar recordatorios push";
   pushBtn.disabled = false;
+  pushBtn.textContent = isReady ? "Suscripción FCM activa" : "Activar recordatorios push";
   pushStatus.textContent = isReady
-    ? "OneSignal listo. Usa el ID para enviar avisos."
+    ? "Firebase Cloud Messaging listo. Usa el token para enviar avisos."
     : "Pendiente de activar.";
-  pushData.value = isReady ? JSON.stringify({ oneSignalUserId: userId }, null, 2) : "";
+  pushData.value = isReady ? JSON.stringify({ token }, null, 2) : "";
 }
 
-function ensureOneSignal() {
-  if (!ONE_SIGNAL_APP_ID) {
-    showAlert("Configura tu ONE_SIGNAL_APP_ID en config.js", "error");
+async function ensureFirebaseMessaging() {
+  if (!("Notification" in window) || !("serviceWorker" in navigator)) {
+    showAlert("Las notificaciones push no están soportadas en este navegador.", "error");
     return null;
   }
 
-  if (oneSignalReady) return oneSignalReady;
-
-  if (!window.OneSignalDeferred) {
-    window.OneSignalDeferred = [];
+  const hasConfig = FIREBASE_CONFIG && FIREBASE_CONFIG.apiKey;
+  if (!hasConfig || !VAPID_KEY) {
+    showAlert("Completa firebaseConfig y vapidKey en config.js.", "error");
+    return null;
   }
 
-  oneSignalReady = new Promise((resolve, reject) => {
-    window.OneSignalDeferred.push(async function(OneSignal) {
-      try {
-        await OneSignal.init({
-  appId: ONE_SIGNAL_APP_ID,
-  serviceWorkerPath: "/OneSignalSDKWorker.js",
-  serviceWorkerParam: { scope: "/" },
-});
-
-resolve(OneSignal);
-      } catch (err) {
-        console.error("OneSignal init error", err);
-        reject(err);
+  if (!messagingInstance) {
+    try {
+      if (firebase.apps && firebase.apps.length) {
+        firebase.app();
+      } else {
+        firebase.initializeApp(FIREBASE_CONFIG);
       }
-    });
-  });
-
-  return oneSignalReady;
-}
-
-async function getOneSignalState() {
-
-  const p = ensureOneSignal();
-  if (!p) return { userId: null, permission: Notification.permission };
-
-  let OneSignal;
-
-  try {
-    OneSignal = await p;
-  } catch (e) {
-    return { userId: null, permission: Notification.permission };
+      messagingInstance = firebase.messaging();
+    } catch (err) {
+      console.error("Firebase init error", err);
+      showAlert("No se pudo iniciar Firebase Messaging.", "error");
+      return null;
+    }
   }
 
-  const permission = await OneSignal.Notifications.getPermissionState();
-  const userId = await OneSignal.User.getId();
+  if (!messagingRegistration) {
+    try {
+      if (!baseSwRegistration) {
+        baseSwRegistration = await navigator.serviceWorker.register("./sw.js");
+      }
+      messagingRegistration = baseSwRegistration;
+    } catch (err) {
+      console.error("SW registration error", err);
+      showAlert("No se pudo registrar el Service Worker de FCM.", "error");
+      return null;
+    }
+  }
 
-  return { userId, permission };
+  return { messaging: messagingInstance, swRegistration: messagingRegistration };
 }
-
 
 async function subscribePush() {
-
-  const p = ensureOneSignal();
-  if (!p) return null;
-
-  let OneSignal;
-
-  try {
-    OneSignal = await p;
-  } catch (e) {
+  const perm = await ensureNotifPermission();
+  if (perm !== "granted") {
+    showAlert("Activa las notificaciones para obtener el token FCM.", "error");
     return null;
   }
 
+  const ctx = await ensureFirebaseMessaging();
+  if (!ctx) return null;
+
   try {
-    await OneSignal.Notifications.requestPermission();
+    const token = await ctx.messaging.getToken({
+      vapidKey: VAPID_KEY,
+      serviceWorkerRegistration: ctx.swRegistration
+    });
 
-    const { userId, permission } = await getOneSignalState();
-
-    if (!userId) {
-      showAlert("No se pudo obtener el ID de OneSignal. Revisa permisos.", "error");
+    if (!token) {
+      showAlert("No se pudo obtener el token FCM.", "error");
       return null;
     }
 
-    showAlert("Suscripción creada en OneSignal. Usa el ID para enviar avisos.", "success");
-    return { userId, permission };
+    cachedFcmToken = token;
+    if (typeof localStorage !== "undefined") {
+      localStorage.setItem("fcmToken", token);
+    }
+
+    showAlert("Suscripción creada en Firebase Cloud Messaging.", "success");
+    return { token, permission: "granted" };
 
   } catch (err) {
-    console.error("OneSignal subscribe error", err);
-    showAlert("No se pudo completar la suscripción OneSignal.", "error");
+    console.error("FCM subscribe error", err);
+    showAlert("No se pudo completar la suscripción en FCM.", "error");
     return null;
   }
 }
@@ -729,23 +718,34 @@ if (waAutoInput) {
   });
 }
 
-renderPushUI(null, Notification.permission);
+// Registrar el Service Worker principal (PWA + FCM)
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("./sw.js").then(reg => {
+    baseSwRegistration = reg;
+    if (!messagingRegistration) {
+      messagingRegistration = reg;
+    }
+  }).catch(err => {
+    console.error("SW registration error", err);
+  });
+}
 
+renderPushUI(cachedFcmToken, Notification.permission);
 
 if (pushBtn) {
   pushBtn.addEventListener("click", async () => {
-    const state = await getOneSignalState();
-    if (state.userId) {
-      renderPushUI(state.userId, state.permission);
-      showAlert("Ya tienes una suscripción activa en OneSignal.", "success");
-      if (pushData) pushData.value = JSON.stringify({ oneSignalUserId: state.userId }, null, 2);
+    if (cachedFcmToken && Notification.permission === "granted") {
+      renderPushUI(cachedFcmToken, Notification.permission);
+      showAlert("Ya tienes una suscripción activa en Firebase Cloud Messaging.", "success");
+      if (pushData) pushData.value = JSON.stringify({ token: cachedFcmToken }, null, 2);
       return;
     }
 
     const sub = await subscribePush();
     if (sub) {
-      renderPushUI(sub.userId, sub.permission);
-      if (pushData) pushData.value = JSON.stringify({ oneSignalUserId: sub.userId }, null, 2);
+      cachedFcmToken = sub.token;
+      renderPushUI(sub.token, sub.permission);
+      if (pushData) pushData.value = JSON.stringify({ token: sub.token }, null, 2);
     }
   });
 }
@@ -765,13 +765,34 @@ if (notifBtn) {
   });
 }
 
-// Al cargar, intenta recuperar estado de OneSignal y mostrar el ID si existe
-getOneSignalState().then(state => {
-  renderPushUI(state.userId, state.permission);
-  if (state.userId && pushData) {
-    pushData.value = JSON.stringify({ oneSignalUserId: state.userId }, null, 2);
+// Intentar recuperar token FCM existente si el permiso ya está concedido
+(async () => {
+  if (cachedFcmToken) {
+    renderPushUI(cachedFcmToken, Notification.permission);
+    if (pushData) pushData.value = JSON.stringify({ token: cachedFcmToken }, null, 2);
+    return;
   }
-});
+
+  if (Notification.permission !== "granted") return;
+
+  const ctx = await ensureFirebaseMessaging();
+  if (!ctx) return;
+
+  try {
+    const token = await ctx.messaging.getToken({
+      vapidKey: VAPID_KEY,
+      serviceWorkerRegistration: ctx.swRegistration
+    });
+    if (token) {
+      cachedFcmToken = token;
+      if (typeof localStorage !== "undefined") localStorage.setItem("fcmToken", token);
+      renderPushUI(token, "granted");
+      if (pushData) pushData.value = JSON.stringify({ token }, null, 2);
+    }
+  } catch (err) {
+    console.error("FCM getToken error", err);
+  }
+})();
 
 /* =====================
     RECORDATORIOS

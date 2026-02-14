@@ -1,4 +1,26 @@
-const CACHE_NAME = "med-app-v5";
+importScripts("https://www.gstatic.com/firebasejs/11.0.2/firebase-app-compat.js");
+importScripts("https://www.gstatic.com/firebasejs/11.0.2/firebase-messaging-compat.js");
+importScripts("./config.js");
+
+const appConfig = self.APP_CONFIG || {};
+const firebaseConfig = appConfig.firebaseConfig;
+
+if (firebaseConfig && firebaseConfig.apiKey) {
+  firebase.initializeApp(firebaseConfig);
+  const messaging = firebase.messaging();
+
+  messaging.onBackgroundMessage(payload => {
+    const title = payload.notification?.title || "Recordatorio";
+    const body = payload.notification?.body || "Tienes un aviso pendiente";
+    const icon = payload.notification?.icon || "./icon-192.png";
+
+    self.registration.showNotification(title, { body, icon });
+  });
+} else {
+  console.warn("Firebase config no disponible en sw.js; push quedara deshabilitado");
+}
+
+const CACHE_NAME = "med-app-v6";
 
 const ASSETS = [
   "./",

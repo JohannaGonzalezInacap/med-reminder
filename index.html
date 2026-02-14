@@ -7,9 +7,10 @@
     <link rel="manifest" href="manifest.json">
   <title>Recordatorio de Medicamentos</title>
   <link rel="stylesheet" href="style.css">
-  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-  <script src="config.js"></script>
-  <script src="app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/11.0.2/firebase-app-compat.js" defer></script>
+  <script src="https://www.gstatic.com/firebasejs/11.0.2/firebase-messaging-compat.js" defer></script>
+  <script src="config.js" defer></script>
+  <script src="app.js" defer></script>
 
 </head>
 <body>
@@ -29,8 +30,8 @@
         <button type="button" id="pushBtn">Activar recordatorios push</button>
         <span id="pushStatus" aria-live="polite"></span>
       </div>
-      <label class="push-label">ID de suscripción (OneSignal) para enviar avisos:
-        <textarea id="pushData" readonly rows="4" placeholder="Aún no hay suscripción activa"></textarea>
+      <label class="push-label">Token FCM para enviar avisos:
+        <textarea id="pushData" readonly rows="4" placeholder="Aún no hay token activo"></textarea>
       </label>
     </div>
     <label>
