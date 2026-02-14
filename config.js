@@ -3,14 +3,14 @@
 
   scope.APP_CONFIG = {
     firebaseConfig: {
-      apiKey: "TODO_REEMPLAZA_API_KEY",
-      authDomain: "TODO_REEMPLAZA_AUTH_DOMAIN",
-      projectId: "TODO_REEMPLAZA_PROJECT_ID",
-      storageBucket: "TODO_REEMPLAZA_STORAGE_BUCKET",
-      messagingSenderId: "TODO_REEMPLAZA_MESSAGING_SENDER_ID",
-      appId: "TODO_REEMPLAZA_APP_ID",
+      apiKey: "AIzaSyC97Y2EYed-MN_LfAlK_Xe4XBariy6ct1o",
+      authDomain: "med-reminder-ab396.firebaseapp.com",
+      projectId: "med-reminder-ab396",
+      storageBucket: "med-reminder-ab396.appspot.com",
+      messagingSenderId: "1022485074157",
+      appId: "1:1022485074157:web:8c8c0f8c8c8c8c8c8c8c8c",
       measurementId: "OPCIONAL_MEASUREMENT_ID"
     },
-    vapidKey: "TODO_REEMPLAZA_VAPID_KEY"
+    vapidKey: "BKFNRtTEhfw0Q5j27w-3Lr7hDU3AG-cWxKv7NZqcrFtguRIMt268yIMsSft4mabJyAGrKET_WRlEntldbE_GM0A"
   };
 })();
