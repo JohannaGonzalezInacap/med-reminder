@@ -16,6 +16,7 @@ let messagingInstance = null;
 let messagingRegistration = null;
 let cachedFcmToken = (typeof localStorage !== "undefined" ? localStorage.getItem("fcmToken") : "") || "";
 let baseSwRegistration = null;
+const REGISTER_TOKEN_URL = "https://registertoken-upmcmldjtq-uc.a.run.app";
 
 let medicamentos = JSON.parse(localStorage.getItem("medicamentos")) || [];
 let settings = JSON.parse(localStorage.getItem("configApp")) || {
@@ -173,6 +174,21 @@ function renderPushUI(token, permission) {
   pushData.value = isReady ? JSON.stringify({ token }, null, 2) : "";
 }
 
+async function registerTokenRemote(token) {
+  try {
+    const resp = await fetch(REGISTER_TOKEN_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token })
+    });
+    if (!resp.ok) {
+      console.warn("registerToken failed", resp.status);
+    }
+  } catch (err) {
+    console.warn("registerToken error", err);
+  }
+}
+
 async function ensureFirebaseMessaging() {
   if (!("Notification" in window) || !("serviceWorker" in navigator)) {
     showAlert("Las notificaciones push no están soportadas en este navegador.", "error");
@@ -241,6 +257,8 @@ async function subscribePush() {
     if (typeof localStorage !== "undefined") {
       localStorage.setItem("fcmToken", token);
     }
+
+    registerTokenRemote(token);
 
     showAlert("Suscripción creada en Firebase Cloud Messaging.", "success");
     return { token, permission: "granted" };
@@ -789,6 +807,7 @@ if (notifBtn) {
       if (typeof localStorage !== "undefined") localStorage.setItem("fcmToken", token);
       renderPushUI(token, "granted");
       if (pushData) pushData.value = JSON.stringify({ token }, null, 2);
+      registerTokenRemote(token);
     }
   } catch (err) {
     console.error("FCM getToken error", err);
