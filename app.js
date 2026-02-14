@@ -247,7 +247,8 @@ async function subscribePush() {
 
   } catch (err) {
     console.error("FCM subscribe error", err);
-    showAlert("No se pudo completar la suscripción en FCM.", "error");
+    const msg = err?.message || err?.code || String(err);
+    showAlert(`No se pudo completar la suscripción en FCM: ${msg}`, "error");
     return null;
   }
 }
