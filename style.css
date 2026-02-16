@@ -4,6 +4,79 @@ body {
   background: #f4f6f8;
 }
 
+.register-page {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+
+.register-card {
+  max-width: 420px;
+  width: 100%;
+  background: #fff;
+  padding: 20px 22px;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e6e6e6;
+}
+
+.register-card h1 {
+  margin-top: 0;
+  margin-bottom: 8px;
+  font-size: 1.7rem;
+}
+
+.register-sub {
+  margin: 0 0 14px;
+  color: #444;
+  line-height: 1.4;
+}
+
+.register-card form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.register-card label {
+  font-weight: 600;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: #333;
+}
+
+.register-card input {
+  padding: 10px 12px;
+  border: 1px solid #cfd8dc;
+  border-radius: 8px;
+  font-size: 1rem;
+  background: #fafafa;
+}
+
+.register-card button {
+  margin-top: 6px;
+  padding: 12px;
+  font-size: 1.05rem;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(120deg, #4caf50, #43a047);
+  color: #fff;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.register-card button:active {
+  transform: translateY(1px);
+}
+
+.register-note {
+  margin-top: 12px;
+  font-size: 0.95rem;
+  color: #555;
+}
+
 h1 {
   color: #333;
 }

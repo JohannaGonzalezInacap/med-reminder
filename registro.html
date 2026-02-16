@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#4caf50">
+  <link rel="manifest" href="manifest.json">
+  <title>Registro básico</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="registro.js" defer></script>
+</head>
+<body class="register-page">
+  <main class="register-card" aria-labelledby="registro-title">
+    <h1 id="registro-title">Registro básico</h1>
+    <p class="register-sub">Completa tus datos para personalizar los recordatorios. Solo es necesario una vez.</p>
+
+    <form id="registerForm" novalidate>
+      <label>
+        Nombre
+        <input type="text" id="regNombre" name="nombre" autocomplete="given-name" required>
+      </label>
+      <label>
+        Apellido
+        <input type="text" id="regApellido" name="apellido" autocomplete="family-name" required>
+      </label>
+      <label>
+        Edad
+        <input type="number" id="regEdad" name="edad" min="1" max="120" inputmode="numeric" required>
+      </label>
+      <label>
+        Teléfono (WhatsApp)
+        <input type="tel" id="regTelefono" name="telefono" inputmode="tel" placeholder="56912345678" required>
+      </label>
+      <label>
+        Ciudad / Región
+        <input type="text" id="regCiudad" name="ciudad" autocomplete="address-level2">
+      </label>
+
+      <button type="submit" id="btnGuardar">Guardar y continuar</button>
+    </form>
+
+    <p class="register-note">Tus datos se guardan en este dispositivo. Puedes editarlos más adelante.</p>
+  </main>
+</body>
+</html>

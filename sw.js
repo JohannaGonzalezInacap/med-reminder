@@ -25,8 +25,11 @@ const CACHE_NAME = "med-app-v6";
 const ASSETS = [
   "./",
   "./index.html",
+  "./registro.html",
   "./style.css",
   "./app.js",
+  "./registro.js",
+  "./config.js",
   "./manifest.json",
   "./offline.html",
   "./icon-192.png",

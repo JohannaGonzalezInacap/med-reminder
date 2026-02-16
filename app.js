@@ -7,6 +7,9 @@ const notifStatus = document.getElementById("notifStatus");
 const pushBtn = document.getElementById("pushBtn");
 const pushStatus = document.getElementById("pushStatus");
 const pushData = document.getElementById("pushData");
+const installBtn = document.getElementById("installBtn");
+const installStatus = document.getElementById("installStatus");
+const PROFILE_KEY = "userProfile";
 
 let notifWarned = false;
 const APP_CONFIG = (typeof globalThis !== "undefined" ? (globalThis.APP_CONFIG || {}) : {});
@@ -17,6 +20,9 @@ let messagingRegistration = null;
 let cachedFcmToken = (typeof localStorage !== "undefined" ? localStorage.getItem("fcmToken") : "") || "";
 let baseSwRegistration = null;
 const REGISTER_TOKEN_URL = "https://registertoken-upmcmldjtq-uc.a.run.app";
+let deferredInstallPrompt = null;
+const isRegisterPage = typeof window !== "undefined" && window.location.pathname.includes("registro.html");
+let userProfile = null;
 
 let medicamentos = JSON.parse(localStorage.getItem("medicamentos")) || [];
 let settings = JSON.parse(localStorage.getItem("configApp")) || {
@@ -47,6 +53,12 @@ medicamentos = medicamentos.map(med => ({
   })
 }));
 
+userProfile = loadProfile();
+
+if (!isRegisterPage && !userProfile) {
+  window.location.href = "./registro.html";
+}
+
 
 
 
@@ -68,6 +80,17 @@ function guardarSettings() {
 
 function guardarReminderState() {
   localStorage.setItem("reminderState", JSON.stringify(reminderState));
+}
+
+function loadProfile() {
+  try {
+    const raw = localStorage.getItem(PROFILE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (err) {
+    console.warn("No se pudo leer el perfil", err);
+    return null;
+  }
 }
 
 function normalizeHora(h) {
@@ -110,6 +133,81 @@ function showAlert(message, type = "warn") {
   box.className = `alert-box alert-${type}`;
   box.innerHTML = message;
 }
+
+async function registerBaseServiceWorker() {
+  if (!("serviceWorker" in navigator)) return null;
+  if (baseSwRegistration) return baseSwRegistration;
+  try {
+    baseSwRegistration = await navigator.serviceWorker.register("./sw.js");
+    return baseSwRegistration;
+  } catch (err) {
+    console.warn("Service Worker registration failed", err);
+    return null;
+  }
+}
+
+function isStandaloneDisplay() {
+  return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone;
+}
+
+function setInstallStatus(text) {
+  if (installStatus) installStatus.textContent = text;
+}
+
+function setupInstallPrompt() {
+  if (installBtn) installBtn.hidden = true;
+
+  if (isStandaloneDisplay()) {
+    setInstallStatus("App instalada");
+    if (installBtn) {
+      installBtn.hidden = false;
+      installBtn.disabled = true;
+      installBtn.textContent = "Instalada";
+    }
+  }
+
+  window.addEventListener("beforeinstallprompt", event => {
+    event.preventDefault();
+    deferredInstallPrompt = event;
+    if (installBtn) {
+      installBtn.hidden = false;
+      installBtn.disabled = false;
+      installBtn.textContent = "Instalar app";
+    }
+    setInstallStatus("Disponible para instalar");
+  });
+
+  if (installBtn) {
+    installBtn.addEventListener("click", async () => {
+      if (!deferredInstallPrompt) {
+        setInstallStatus(isStandaloneDisplay() ? "App ya instalada" : "Instalación no disponible todavía");
+        return;
+      }
+      deferredInstallPrompt.prompt();
+      const choice = await deferredInstallPrompt.userChoice;
+      if (choice?.outcome === "accepted") {
+        setInstallStatus("Instalando...");
+        installBtn.disabled = true;
+        installBtn.textContent = "Instalando...";
+      } else {
+        setInstallStatus("Instalación cancelada");
+      }
+      deferredInstallPrompt = null;
+    });
+  }
+
+  window.addEventListener("appinstalled", () => {
+    setInstallStatus("App instalada");
+    if (installBtn) {
+      installBtn.disabled = true;
+      installBtn.textContent = "Instalada";
+      installBtn.hidden = false;
+    }
+  });
+}
+
+registerBaseServiceWorker();
+setupInstallPrompt();
 
 
 function renderNotifStatus() {
@@ -218,13 +316,14 @@ async function ensureFirebaseMessaging() {
 
   if (!messagingRegistration) {
     try {
-      if (!baseSwRegistration) {
-        baseSwRegistration = await navigator.serviceWorker.register("./sw.js");
-      }
-      messagingRegistration = baseSwRegistration;
+      messagingRegistration = await registerBaseServiceWorker();
     } catch (err) {
       console.error("SW registration error", err);
       showAlert("No se pudo registrar el Service Worker de FCM.", "error");
+      return null;
+    }
+    if (!messagingRegistration) {
+      showAlert("No se pudo registrar el Service Worker para notificaciones.", "error");
       return null;
     }
   }
